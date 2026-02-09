@@ -27,7 +27,7 @@ async function startServer(): Promise<void> {
 
 	const schema = await buildSchema({
 		resolvers: [CountryResolver],
-		validate: false,
+		validate: true,
 	});
 
 	const server = new ApolloServer({

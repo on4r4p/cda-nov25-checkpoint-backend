@@ -1,13 +1,13 @@
-import { Arg, Mutation, Query, Resolver } from "type-graphql";
+import { Args, Mutation, Query, Resolver } from "type-graphql";
 import { Country } from "../Entities/Country";
+import { CountryCodeArgs } from "./CountryCodeArgs";
+import { CreateCountryArgs } from "./CreateCountryArgs";
 
 @Resolver(() => Country)
 export class CountryResolver {
 	@Mutation(() => Country)
 	async addCountry(
-		@Arg("code") code: string,
-		@Arg("name") name: string,
-		@Arg("emoji") emoji: string,
+		@Args() { code, name, emoji }: CreateCountryArgs,
 	): Promise<Country> {
 		const normalizedCode = code.trim().toUpperCase();
 
@@ -35,7 +35,7 @@ export class CountryResolver {
 	}
 
 	@Query(() => Country, { nullable: true })
-	async country(@Arg("code") code: string): Promise<Country | null> {
+	async country(@Args() { code }: CountryCodeArgs): Promise<Country | null> {
 		return Country.findOneBy({ code: code.trim().toUpperCase() });
 	}
 }
