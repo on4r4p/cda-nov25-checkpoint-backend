@@ -1,25 +1,14 @@
 import { ApolloServer } from "@apollo/server";
 import "reflect-metadata";
 import { buildSchema } from "type-graphql";
-import { DataSource } from "typeorm";
 import { Country } from "../src/Entities/Country";
 import { CountryResolver } from "../src/Resolvers/CountryResolver";
+import { clearDB, db } from "../src/db/reset";
 
-describe("Countries API integration", () => {
-	let db: DataSource;
+describe("Country mutation integration (real sqlite DB)", () => {
 	let server: ApolloServer;
 
 	beforeAll(async () => {
-		db = new DataSource({
-			type: "sqlite",
-			database: ":memory:",
-			entities: [Country],
-			synchronize: true,
-			dropSchema: true,
-			logging: false,
-		});
-		await db.initialize();
-
 		const schema = await buildSchema({
 			resolvers: [CountryResolver],
 			validate: true,
@@ -29,29 +18,32 @@ describe("Countries API integration", () => {
 	});
 
 	beforeEach(async () => {
-		await db.synchronize(true);
-		await Country.save([
-			{ code: "FR", name: "France", emoji: "🇫🇷" },
-			{ code: "BE", name: "Belgique", emoji: "🇧🇪" },
-			{ code: "US", name: "United States", emoji: "🇺🇸" },
-		]);
+		await clearDB();
 	});
 
 	afterAll(async () => {
-		await db.destroy();
+		await clearDB();
+		if (db.isInitialized) {
+			await db.destroy();
+		}
 	});
 
-	it("reads countries list from GraphQL API", async () => {
+	it("creates a country in database via addCountry mutation", async () => {
 		const response = await server.executeOperation({
 			query: `
-				query {
-					countries {
+				mutation AddCountry($code: String!, $name: String!, $emoji: String!) {
+					addCountry(code: $code, name: $name, emoji: $emoji) {
 						code
 						name
 						emoji
 					}
 				}
 			`,
+			variables: {
+				code: "fr",
+				name: "France",
+				emoji: "🇫🇷",
+			},
 		});
 
 		expect(response.body.kind).toBe("single");
@@ -61,11 +53,19 @@ describe("Countries API integration", () => {
 
 		expect(response.body.singleResult.errors).toBeUndefined();
 		expect(response.body.singleResult.data).toEqual({
-			countries: [
-				{ code: "BE", name: "Belgique", emoji: "🇧🇪" },
-				{ code: "FR", name: "France", emoji: "🇫🇷" },
-				{ code: "US", name: "United States", emoji: "🇺🇸" },
-			],
+			addCountry: {
+				code: "FR",
+				name: "France",
+				emoji: "🇫🇷",
+			},
+		});
+
+		const countryInDB = await Country.findOneBy({ code: "FR" });
+		expect(countryInDB).not.toBeNull();
+		expect(countryInDB).toMatchObject({
+			code: "FR",
+			name: "France",
+			emoji: "🇫🇷",
 		});
 	});
 });

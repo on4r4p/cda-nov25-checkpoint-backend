@@ -2,7 +2,7 @@ import "reflect-metadata";
 import { DataSource } from "typeorm";
 import { Country } from "../Entities/Country";
 
-const db = new DataSource({
+export const db = new DataSource({
 	type: "sqlite",
 	database: "database.sqlite",
 	entities: [Country],
@@ -32,4 +32,6 @@ async function resetDB(): Promise<void> {
 	}
 }
 
-void resetDB();
+if (require.main === module) {
+	void resetDB();
+}
