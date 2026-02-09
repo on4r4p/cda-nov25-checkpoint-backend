@@ -1,5 +1,5 @@
 import { Arg, Mutation, Query, Resolver } from "type-graphql";
-import { Country } from "../entities/Country";
+import { Country } from "../Entities/Country";
 
 @Resolver(() => Country)
 export class CountryResolver {
